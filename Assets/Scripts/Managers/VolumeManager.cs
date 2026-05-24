@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class SoundManager : MonoBehaviour
+public class VolumeManager : MonoBehaviour
 {
     [SerializeField] private SoundDataSO _data;
 

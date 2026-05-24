@@ -51,7 +51,7 @@ public class MyPoolManager : MonoBehaviour
         }
     }
 
-    public void CreatePool(GameObject prefab, Transform parent, int quantity, List<IPooleable> list)
+    private void CreatePool(GameObject prefab, Transform parent, int quantity, List<IPooleable> list)
     {
         for (int i = 0; i < quantity; i++)
         {
