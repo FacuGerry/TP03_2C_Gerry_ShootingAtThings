@@ -1,6 +1,7 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
+
+[RequireComponent(typeof(Animator), typeof(Rigidbody), typeof(PlayerShoot))]
 
 public class PlayerController : MonoBehaviour
 {

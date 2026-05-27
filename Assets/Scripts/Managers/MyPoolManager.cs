@@ -34,11 +34,14 @@ public class MyPoolManager : MonoBehaviour
             Type type = pooleable.GetType();
 
             if (!_pooleablesDictionary.ContainsKey(type))
+            {
                 _pooleablesDictionary[type] = new List<IPooleable>();
-
-            GameObject parent = new GameObject(pool.prefab.ToString());
-            parent.transform.parent = transform;
-            CreatePool(pool.prefab.gameObject, parent.transform, pool.quantity, _pooleablesDictionary[type]);
+                GameObject parent = new(pool.prefab.name);
+                parent.transform.SetParent(transform);
+                CreatePool(pool.prefab.gameObject, parent.transform, pool.quantity, _pooleablesDictionary[type]);
+            }
+            else
+                Debug.Log("Pool of " + type.Name + " already exists!!!");
         }
     }
 
@@ -67,6 +70,7 @@ public class MyPoolManager : MonoBehaviour
             if (!list[i].IsActive)
                 return list[i] as T;
         }
+
         return null;
     }
 

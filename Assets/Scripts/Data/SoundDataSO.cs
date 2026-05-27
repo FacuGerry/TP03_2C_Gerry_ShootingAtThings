@@ -25,4 +25,9 @@ public class SoundDataSO : ScriptableObject
 
     [Header("Background music")]
     public AudioClip bckgMusic;
+
+    private void OnValidate()
+    {
+        Debug.Log("validated");
+    }
 }
