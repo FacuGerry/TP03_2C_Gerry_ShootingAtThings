@@ -7,7 +7,6 @@ public class WeaponIkFollower : MonoBehaviour
 
     private void LateUpdate()
     {
-        _ikTarget.position = _weaponTarget.position;
-        _ikTarget.rotation = _weaponTarget.rotation;
+        _ikTarget.SetPositionAndRotation(_weaponTarget.position, _weaponTarget.rotation);
     }
 }
