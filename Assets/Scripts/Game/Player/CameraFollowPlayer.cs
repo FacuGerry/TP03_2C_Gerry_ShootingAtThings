@@ -5,6 +5,7 @@ public class CameraFollowPlayer : MonoBehaviour
     [SerializeField] private PlayerDataSO _data;
     [SerializeField] private Transform _cameraPos;
     [SerializeField] private Rigidbody _player;
+    [SerializeField] private GameObject _weapon;
 
     private float _yaw;
     private float _pitch;
@@ -40,5 +41,9 @@ public class CameraFollowPlayer : MonoBehaviour
 
         transform.localRotation = Quaternion.Euler(_pitch, _yaw, 0f);
         _player.MoveRotation(Quaternion.Euler(0f, _yaw, 0f));
+
+        // Quaternion weaponRot = _weapon.transform.rotation;
+        // weaponRot.x = _pitch;
+        // _weapon.transform.localEulerAngles = new(weaponRot.x, weaponRot.y, weaponRot.z);
     }
 }

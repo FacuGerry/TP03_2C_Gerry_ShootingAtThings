@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(Animator), typeof(Rigidbody), typeof(PlayerShoot))]
+[RequireComponent(typeof(Rigidbody), typeof(PlayerShoot))]
 
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private PlayerDataSO _data;
+    [SerializeField] private Animator _anim;
 
-    private Animator _anim;
     private Rigidbody _rb;
 
     public PlayerShoot Shoot { get; private set; }
@@ -22,56 +22,31 @@ public class PlayerController : MonoBehaviour
     private Vector2 _moveInput = Vector2.zero;
 
     private bool _isAlive = true;
-    private bool _isWalking = false;
-    private bool _isCrouching = false;
-    private bool IsCrouching => _isCrouching;
-
-    private bool _wantsCrouch = false;
-    private bool _wantsShoot = false;
-    private bool _wantsJump = false;
+    public Vector2 MoveInput { get; private set; }
+    public bool IsWalking { get; private set; }
+    public bool WantsCrouch { get; private set; }
+    public bool WantsShoot { get; private set; }
+    public bool WantsJump { get; private set; }
+    public bool IsAlive => _isAlive;
+    public bool IsCrouching { get; private set; }
+    public bool IsOnFloor { get; private set; }
 
     private void Awake()
     {
-        _anim = GetComponent<Animator>();
         _rb = GetComponent<Rigidbody>();
         Shoot = GetComponent<PlayerShoot>();
 
         _states.Clear();
 
-        // IDLE
         _states.Add(new StateIdle());
-
-        // RUN
-        _states.Add(new StateRunForward());
-        _states.Add(new StateRunLeft());
-        _states.Add(new StateRunBackwards());
-        _states.Add(new StateRunRight());
-
-        // WALK
-        _states.Add(new StateWalkForward());
-        _states.Add(new StateWalkLeft());
-        _states.Add(new StateWalkBackwards());
-        _states.Add(new StateWalkRight());
-
-        // SHOOT
-        _states.Add(new StateShoot());
-
-        // JUMP
+        _states.Add(new StateWalk());
+        _states.Add(new StateShoot()); // aparte
         _states.Add(new StateJump());
-
-        // TOGGLE CROUCH
         _states.Add(new StateStandUpToCrouch());
         _states.Add(new StateCrouchToStandUp());
-
-        // CROUCH MOVEMENT
         _states.Add(new StateCrouchIdle());
-        _states.Add(new StateCrouchWalkForward());
-        _states.Add(new StateCrouchWalkLeft());
-        _states.Add(new StateCrouchWalkBackwards());
-        _states.Add(new StateCrouchWalkRight());
+        _states.Add(new StateCrouchMove());
         _states.Add(new StateCrouchShoot());
-
-        // DIE
         _states.Add(new StateDie());
 
         foreach (PlayerStates state in _states)
@@ -85,21 +60,22 @@ public class PlayerController : MonoBehaviour
     {
         _moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
-        _isWalking = Input.GetKey(KeyCode.LeftShift);
+        IsWalking = Input.GetKey(KeyCode.LeftShift);
 
-        _wantsCrouch = Input.GetKeyDown(KeyCode.LeftControl);
-        _wantsShoot = Input.GetMouseButton(0);
-        _wantsJump = Input.GetKeyDown(KeyCode.Space);
+        WantsCrouch = Input.GetKeyDown(KeyCode.LeftControl);
+        WantsJump = Input.GetKeyDown(KeyCode.Space);
+
+        WantsShoot = Input.GetMouseButton(0);
 
         _currentState.OnUpdate();
-        EvaluateTransitions();
-        MovePlayer();
+
+        CalculatePlayerSpeed();
         UpdateAnimatorInputs();
     }
 
     private void FixedUpdate()
     {
-        _rb.AddForce(_data.movementSpeed * _speedChanger * _direction, ForceMode.Force);
+        _rb.AddForce(_direction * (_data.movementSpeed * _speedChanger), ForceMode.Force);
     }
 
     private void UpdateAnimatorInputs()
@@ -108,18 +84,16 @@ public class PlayerController : MonoBehaviour
         _anim.SetFloat("Input Y", _moveInput.y);
     }
 
-    public void MovePlayer()
+    public void CalculatePlayerSpeed()
     {
         Vector3 direction = transform.forward * _moveInput.y + transform.right * _moveInput.x;
-        direction.Normalize();
-
-        _direction = direction;
+        _direction = direction.normalized;
 
         if (IsCrouching)
             _speedChanger = 0.75f;
         else
         {
-            if (_isWalking)
+            if (IsWalking)
                 _speedChanger = 1f;
             else
                 _speedChanger = 1.5f;
@@ -147,91 +121,5 @@ public class PlayerController : MonoBehaviour
         return null;
     }
 
-    public StateTypePlayer GetMovementState()
-    {
-        bool moving = _moveInput.sqrMagnitude > 0.01f;
-
-        if (!moving)
-            return IsCrouching ? StateTypePlayer.CrouchIdle : StateTypePlayer.Idle;
-
-        bool walking = _isWalking && !IsCrouching;
-
-        if (_moveInput.y > 0)
-        {
-            if (IsCrouching)
-                return StateTypePlayer.CrouchWalkForward;
-
-            return walking ? StateTypePlayer.WalkForward : StateTypePlayer.RunForward;
-        }
-
-        if (_moveInput.y < 0)
-        {
-            if (IsCrouching)
-                return StateTypePlayer.CrouchWalkBackwards;
-
-            return walking ? StateTypePlayer.WalkBackwards : StateTypePlayer.RunBackwards;
-        }
-
-        if (_moveInput.x > 0)
-        {
-            if (IsCrouching)
-                return StateTypePlayer.CrouchWalkRight;
-
-            return walking ? StateTypePlayer.WalkRight : StateTypePlayer.RunRight;
-        }
-
-        if (_moveInput.x < 0)
-        {
-            if (IsCrouching)
-                return StateTypePlayer.CrouchWalkLeft;
-
-            return walking ? StateTypePlayer.WalkLeft : StateTypePlayer.RunLeft;
-        }
-
-        return StateTypePlayer.Idle;
-    }
-
-    private void EvaluateTransitions()
-    {
-        if (_currentState.state == StateTypePlayer.StandUpToCrouch || _currentState.state == StateTypePlayer.CrouchToStandUp
-            || _currentState.state == StateTypePlayer.Jump || _currentState.state == StateTypePlayer.Die)
-            return;
-
-        if (!_isAlive)
-        {
-            SwitchState(FindState(StateTypePlayer.Die));
-            return;
-        }
-
-        if (_wantsJump)
-        {
-            SwitchState(FindState(StateTypePlayer.Jump));
-            return;
-        }
-
-        if (_wantsShoot)
-        {
-            SwitchState(FindState(StateTypePlayer.Shoot));
-            return;
-        }
-
-        if (_wantsCrouch)
-        {
-            if (IsCrouching)
-                SwitchState(FindState(StateTypePlayer.CrouchToStandUp));
-            else
-                SwitchState(FindState(StateTypePlayer.StandUpToCrouch));
-
-            return;
-        }
-
-        StateTypePlayer movementState = GetMovementState();
-
-        if (movementState != _currentState.state)
-        {
-            SwitchState(FindState(movementState));
-        }
-    }
-
-    public void ChangeCrouching(bool isCrouching) => _isCrouching = isCrouching;
+    public void ChangeCrouching(bool isCrouching) => IsCrouching = isCrouching;
 }

@@ -1,12 +1,34 @@
 using UnityEngine;
 
+[RequireComponent (typeof(Animator))]
+
 public class WeaponIkFollower : MonoBehaviour
 {
-    [SerializeField] private Transform _ikTarget;
-    [SerializeField] private Transform _weaponTarget;
+    [SerializeField] private CustomIkController[] _ikController;
+    private Animator _anim;
 
-    private void LateUpdate()
+    private void Awake()
     {
-        _ikTarget.SetPositionAndRotation(_weaponTarget.position, _weaponTarget.rotation);
+        _anim = GetComponent<Animator>();
+    }
+
+    private void OnAnimatorIK(int layerIndex)
+    {
+        AnimateIK();
+    }
+
+    private void AnimateIK()
+    {
+        if (_anim)
+        {
+            foreach (CustomIkController ik in _ikController)
+            {
+                _anim.SetIKPositionWeight(ik.goal, ik.weight);
+                _anim.SetIKRotationWeight(ik.goal, ik.weight);
+
+                _anim.SetIKPosition(ik.goal, ik.target.position);
+                _anim.SetIKRotation(ik.goal, ik.target.rotation);
+            }
+        }
     }
 }
